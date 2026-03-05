@@ -1,13 +1,51 @@
 #!/usr/bin/env python3
 import asyncio
 import struct
+import requests
+import threading
+import time
+
+ONOS_API_USERNAME = 'onos'
+ONOS_API_PASSWORD = 'rocks'
 
 PROXY_HOST = "0.0.0.0"
-PROXY_PORT = 16653      # Mininet connects here
+PROXY_PORT = 16653      # mininet
 CTRL_HOST = "127.0.0.1"
-CTRL_PORT = 6653        # ONOS listens here
-
+CTRL_PORT = 6653        # onos port
 DROP_FLOW_MOD = False   # set True to test blocking controller flow installs
+
+def onos_rest_test():
+    '''
+    Quick test function to experiment with making REST API calls
+    to the onos api while things are running
+    '''
+    while True:
+        time.sleep(3)
+
+        r = requests.get('http://127.0.0.1:8181/onos/v1/devices',
+            auth=(ONOS_API_USERNAME, ONOS_API_PASSWORD))
+
+        if r.status_code == 200:
+            print('successfully queried onos rest api')
+
+            json_data = r.json()
+
+            for device in json_data["devices"]:
+                print(f'\tThis is device id {device["id"]}')
+                print(f'\t\t{device["humanReadableLastUpdate"]}')
+            
+            # debug
+            #print(json_data)
+
+        else:
+            print(f'error querying onos rest, http code {r.status_code}')
+
+
+# temporary stuff
+mt = threading.Thread(target=onos_rest_test)
+mt.start()
+
+##################
 
 
 # these are from the spec 
@@ -29,6 +67,9 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
             hdr = await reader.readexactly(8)              # OF header
             ver, typ, length, xid = struct.unpack("!BBHI", hdr)
             body = await reader.readexactly(length - 8)
+
+            if typ == 10:
+                print('received a packet in')
 
             name = OF_TYPES.get(typ, f"TYPE_{typ}")
             print(f"{direction} v={ver} {name} len={length} xid={xid}")
