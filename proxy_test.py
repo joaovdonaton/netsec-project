@@ -4,14 +4,17 @@ import struct
 import requests
 import threading
 import time
+import loxi.of13 as ofp 
+
+print(ofp.message.parse_header)
 
 ONOS_API_USERNAME = 'onos'
 ONOS_API_PASSWORD = 'rocks'
 
 PROXY_HOST = "0.0.0.0"
-PROXY_PORT = 16653      # mininet
-CTRL_HOST = "127.0.0.1"
-CTRL_PORT = 6653        # onos port
+PROXY_PORT = 16653      # mininet will connect to this
+CONTROL_HOST = "127.0.0.1"
+CONTROL_PORT = 6653        # onos port
 DROP_FLOW_MOD = False   # set True to test blocking controller flow installs
 
 def onos_rest_test():
@@ -64,7 +67,8 @@ OF_TYPES = {
 async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
     try:
         while True:
-            hdr = await reader.readexactly(8)              # OF header
+            # read the OF header bytes 
+            hdr = await reader.readexactly(8)
             ver, typ, length, xid = struct.unpack("!BBHI", hdr)
             body = await reader.readexactly(length - 8)
 
@@ -87,7 +91,7 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
         await writer.wait_closed()
 
 async def handle_switch(sw_reader, sw_writer):
-    ctrl_reader, ctrl_writer = await asyncio.open_connection(CTRL_HOST, CTRL_PORT)
+    ctrl_reader, ctrl_writer = await asyncio.open_connection(CONTROL_HOST, CONTROL_PORT)
     await asyncio.gather(
         relay(sw_reader, ctrl_writer, "SW->CTL"),
         relay(ctrl_reader, sw_writer, "CTL->SW", drop_ctl_flow_mod=DROP_FLOW_MOD),
@@ -95,7 +99,7 @@ async def handle_switch(sw_reader, sw_writer):
 
 async def main():
     server = await asyncio.start_server(handle_switch, PROXY_HOST, PROXY_PORT)
-    print(f"Proxy on {PROXY_HOST}:{PROXY_PORT} -> {CTRL_HOST}:{CTRL_PORT}")
+    print(f"Proxy on {PROXY_HOST}:{PROXY_PORT} -> {CONTROL_HOST}:{CONTROL_PORT}")
     async with server:
         await server.serve_forever()
 
