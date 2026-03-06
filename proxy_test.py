@@ -6,8 +6,6 @@ import threading
 import time
 import loxi.of13 as ofp 
 
-print(ofp.message.parse_header)
-
 ONOS_API_USERNAME = 'onos'
 ONOS_API_PASSWORD = 'rocks'
 
@@ -15,7 +13,7 @@ PROXY_HOST = "0.0.0.0"
 PROXY_PORT = 16653      # mininet will connect to this
 CONTROL_HOST = "127.0.0.1"
 CONTROL_PORT = 6653        # onos port
-DROP_FLOW_MOD = False   # set True to test blocking controller flow installs
+#DROP_FLOW_MOD = False   # test blocking controller flow installs
 
 def onos_rest_test():
     '''
@@ -46,7 +44,7 @@ def onos_rest_test():
 
 # temporary stuff
 mt = threading.Thread(target=onos_rest_test)
-mt.start()
+#mt.start()
 
 ##################
 
@@ -57,35 +55,28 @@ mt.start()
 # it so we don't have to manually parse and detail with it at byte-level
 # this is just a proof of concept
 
-OF_TYPES = {
-    10: "PACKET_IN",
-    14: "FLOW_MOD",
-    20: "BARRIER_REQUEST",
-    21: "BARRIER_REPLY",
-}
-
 async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
     try:
         while True:
             # read the OF header bytes 
             hdr = await reader.readexactly(8)
-            ver, typ, length, xid = struct.unpack("!BBHI", hdr)
+            ver, typ, length, xid = ofp.message.parse_header(hdr)
             body = await reader.readexactly(length - 8)
 
-            if typ == 10:
-                print('received a packet in')
+            msg = ofp.message.parse_message(hdr + body)
+            type_name = msg.__class__.__name__
+            #print(msg.type == typ)
 
-            name = OF_TYPES.get(typ, f"TYPE_{typ}")
-            print(f"{direction} v={ver} {name} len={length} xid={xid}")
+            print(f"[{type_name}] {direction}: len={length} xid={xid}")
 
-            if drop_ctl_flow_mod and typ == 14:
-                print("  -> dropped FLOW_MOD")
-                continue
+            # if drop_ctl_flow_mod and typ == 14:
+            #     print("!!!!!!dropped FLOW_MOD")
+            #     continue
 
             writer.write(hdr + body)
             await writer.drain()
     except Exception:
-        pass
+        print('Something wrong in relay!!!')
     finally:
         writer.close()
         await writer.wait_closed()
@@ -93,8 +84,8 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
 async def handle_switch(sw_reader, sw_writer):
     ctrl_reader, ctrl_writer = await asyncio.open_connection(CONTROL_HOST, CONTROL_PORT)
     await asyncio.gather(
-        relay(sw_reader, ctrl_writer, "SW->CTL"),
-        relay(ctrl_reader, sw_writer, "CTL->SW", drop_ctl_flow_mod=DROP_FLOW_MOD),
+        relay(sw_reader, ctrl_writer, "To Controller"),
+        relay(ctrl_reader, sw_writer, "To Network Device"),
     )
 
 async def main():
