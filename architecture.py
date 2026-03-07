@@ -5,6 +5,7 @@
 
 from util import of_type_map
 import json
+import requests
 
 class Observer:
     def __init__(self, message_filter):
@@ -39,9 +40,34 @@ class Observer:
         
         print(f'\t{msg_type_counts}')
 
-        # # temporary thing
-        # if sum(msg_type_counts.values()) > 200:
-        #     with open('data/2-hosts-200-messages-distribution', 'w') as json_file:
-        #         json.dump(msg_type_counts, json_file, indent=4)
-            
-        #     self.observed_log = []
+
+class SDNControllerView:
+    '''
+    This is my version of what the paper refers to as "SDN Controller Stub".
+    It is essentially what communicates "northbound" (in this case to the REST API) that the
+    SDN Controlle provides. I'm currently only trying ONOS, so this is designed around
+    how that works
+    '''
+
+    def __init__(self, controller_url, username, password):
+        ''''''
+        self.controller_url = controller_url
+        self.username = username
+        self.password = password
+
+    def fetch_network_state(self):
+        resp = requests.get(self.controller_url, auth=(self.username, self.password))
+
+        if resp.status_code == 200:
+            flows = resp.json()['flows']
+
+            print('Flows in controller state:')
+            for flow in flows:
+                print(f'[{flow["state"]}] on device \"{flow["deviceId"]}\" installed by app \"{flow["appId"]}\'')
+                print(f'\tSelector Criteria: {flow["selector"]["criteria"]}')
+                print(f'\tTreatment Instruction: {flow["treatment"]["instructions"]}')
+
+                print()
+
+        else:
+            raise Exception(f"Failed to get status from SDN Controller REST API: \nat {self.controller_url}")
