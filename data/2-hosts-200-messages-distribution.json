@@ -1,0 +1,16 @@
+{
+    "HELLO": 2,
+    "FEATURES_REQUEST": 1,
+    "FEATURES_REPLY": 1,
+    "STATS_REQUEST": 47,
+    "STATS_REPLY": 47,
+    "BARRIER_REQUEST": 9,
+    "GET_CONFIG_REQUEST": 1,
+    "BARRIER_REPLY": 9,
+    "GET_CONFIG_REPLY": 1,
+    "ROLE_REQUEST": 2,
+    "ROLE_REPLY": 2,
+    "PACKET_OUT": 65,
+    "FLOW_MOD": 8,
+    "PACKET_IN": 6
+}

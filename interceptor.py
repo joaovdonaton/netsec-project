@@ -6,6 +6,9 @@ import threading
 import time
 import loxi.of13 as ofp 
 
+from architecture import Observer
+from util import of_type_map
+
 ONOS_API_USERNAME = 'onos'
 ONOS_API_PASSWORD = 'rocks'
 
@@ -55,6 +58,9 @@ mt = threading.Thread(target=onos_rest_test)
 # it so we don't have to manually parse and detail with it at byte-level
 # this is just a proof of concept
 
+obs_msg_filter = [] # 14=flow mod
+observer = Observer(obs_msg_filter)
+
 async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
     try:
         while True:
@@ -64,10 +70,12 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
             body = await reader.readexactly(length - 8)
 
             msg = ofp.message.parse_message(hdr + body)
-            type_name = msg.__class__.__name__
-            #print(msg.type == typ)
+            type_name = of_type_map[msg.type]
 
             print(f"[{type_name}] {direction}: len={length} xid={xid}")
+
+            observer.add_message(msg, False)
+            observer.display_stats()
 
             # if drop_ctl_flow_mod and typ == 14:
             #     print("!!!!!!dropped FLOW_MOD")
@@ -75,8 +83,10 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
 
             writer.write(hdr + body)
             await writer.drain()
-    except Exception:
+    except Exception as e:
         print('Something wrong in relay!!!')
+        print(e)
+        #exit()
     finally:
         writer.close()
         await writer.wait_closed()

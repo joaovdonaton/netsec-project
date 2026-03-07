@@ -24,6 +24,7 @@ docker run -d --name onos --restart unless-stopped \
 ```
 sudo mn --controller=remote,ip=127.0.0.1,port=6653 --switch ovsk,protocols=OpenFlow13 --topo single,2 --mac
 ```
+- Note: the above mn command connets directly to the onos port and not the proxy
 
 - This mininet command connects to the SDN controller and specifies a topology of 1 switch and 2 hosts
 
