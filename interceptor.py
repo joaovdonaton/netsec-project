@@ -6,7 +6,7 @@ import threading
 import time
 import loxi.of13 as ofp 
 
-from architecture import Observer, SDNControllerView
+from architecture import Observer, SDNControllerView, Comparator
 from util import of_type_map
 
 ONOS_API_USERNAME = 'onos'
@@ -21,9 +21,11 @@ CONTROL_PORT = 6653        # onos port
 obs_msg_filter = [14] # 14=flow mod, 20=barrier_request, 21=barrier reply
 observer = Observer(obs_msg_filter)
 
-controller_view = SDNControllerView('http://127.0.0.1:8181/onos/v1/flows', ONOS_API_USERNAME, ONOS_API_PASSWORD)
-controller_view.fetch_network_state()
+controller_stub = SDNControllerView('http://127.0.0.1:8181/onos/v1/flows', ONOS_API_USERNAME, ONOS_API_PASSWORD)
+#controller_stub.fetch_network_state()
 # exit()
+
+comparator = Comparator()
 
 async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
     try:
@@ -39,10 +41,23 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
             #print(f"[{type_name}] {direction}: len={length} xid={xid}")
 
             observer.add_message(msg)
-            #observer.display_stats()
 
-            writer.write(hdr + body)
-            await writer.drain()
+            # flow mod is stopped for our comparison
+            if msg.type == 14:
+                print('[!] network programming attempt detected! calling comparator.')
+                status = comparator.compare(controller_stub, observer)
+
+                if status:
+                    print('[!] Allow flow to be applied')
+                    writer.write(hdr + body)
+                    await writer.drain()
+                else:
+                    print('[!] BLOCKED MALICIOUS NETWORK MODIFICATION ATTEMPT')
+            
+            # other messages can pass normally
+            else:
+                writer.write(hdr + body)
+                await writer.drain()
     except Exception as e:
         print('Something wrong in relay!!!')
         print(e)

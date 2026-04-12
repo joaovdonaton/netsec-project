@@ -3,6 +3,10 @@
 # the paper (see README.md)
 #
 
+#
+# NOTE: this version currently is hardcoded for one switch of id 'of:0000000000000001'
+#
+
 from util import of_type_map
 import json
 import requests
@@ -16,10 +20,6 @@ class Observer:
         message_filter: a list of the message OF message type (id number) that we want to observe, others are ignored 
         '''
         self.message_filter = message_filter
-
-        #
-        # NOTE: this version currently is hardcoded for one switch of id as below
-        #
         self.observed_log = {'of:0000000000000001': []}
 
 
@@ -33,7 +33,7 @@ class Observer:
             if norm_msg is not None:
                 self.observed_log['of:0000000000000001'].append(norm_msg)
         
-        print(self.observed_log)
+        #print(self.observed_log)
 
 
     def normalize_message(self, message):
@@ -85,6 +85,10 @@ class Observer:
         print(f'\t{msg_type_counts}')
 
 
+    def get_log(self):
+        return self.observed_log
+
+
 class SDNControllerView:
     '''
     This is my version of what the paper refers to as "SDN Controller Stub".
@@ -108,7 +112,7 @@ class SDNControllerView:
             flows = resp.json()['flows']
 
 
-            print('Flows in controller state:')
+            #print('Flows in controller state:')
             for flow in flows:
                 deviceId = flow['deviceId']
                 appId = flow['appId']
@@ -137,3 +141,39 @@ class SDNControllerView:
 
         else:
             raise Exception(f"Failed to get status from SDN Controller REST API: \nat {self.controller_url}")
+
+
+    def get_network_state(self):
+        return self.network_view_state
+
+
+class Comparator:
+    '''
+    The comparator object from the paper. Unfortunately they don't go into detail for the comparator algorithm,
+    I assume because their paper is more about the architecture. So this is something we can experiment with
+    '''
+    def __init__(self):
+        pass
+    
+    def compare(self, controller_stub, observer):
+        '''
+        From the paper, it seems this is meant to be called every time there is a network programming
+        attempt (so some kind of flow mod)
+
+        returns:
+        - True if the states match
+        - False if they don't
+        '''
+        # get newest state from ONOS 
+        controller_stub.fetch_network_state() 
+        controller_state = controller_stub.get_network_state()
+
+        # get most recent observer state observed
+        flow_mod = observer.get_log()['of:0000000000000001'][-1]
+
+        print('Controller State')
+        print(controller_state)
+        print('Most recent flow mod')
+        print(flow_mod)
+
+        return True
