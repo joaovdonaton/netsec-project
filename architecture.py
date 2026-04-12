@@ -17,6 +17,9 @@ class Observer:
         '''
         self.message_filter = message_filter
 
+        #
+        # NOTE: this version currently is hardcoded for one switch of id as below
+        #
         self.observed_log = {'of:0000000000000001': []}
 
 
