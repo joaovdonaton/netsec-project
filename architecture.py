@@ -166,14 +166,81 @@ class Comparator:
         '''
         # get newest state from ONOS 
         controller_stub.fetch_network_state() 
-        controller_state = controller_stub.get_network_state()
+        controller_state = controller_stub.get_network_state()['of:0000000000000001']
 
         # get most recent observer state observed
         flow_mod = observer.get_log()['of:0000000000000001'][-1]
 
-        print('Controller State')
-        print(controller_state)
-        print('Most recent flow mod')
-        print(flow_mod)
+        for installed_flow_rule in controller_state:
+            # get values from installed rule 
+            installed_values = []
+            selector, treatment = installed_flow_rule['selector'], installed_flow_rule['treatment']
 
-        return True
+            for criteria in selector:
+                installed_values.append(
+                    self.extract_criteria_values(criteria)
+                )
+            
+            for instruction in treatment:
+                installed_values.append(
+                    self.extract_instruction_values(instruction)
+                )
+
+            # get values for flow mod
+            selector, treatment = flow_mod['selector'], flow_mod['treatment']
+            mod_values = []
+            for criteria in selector:
+                mod_values.append(
+                    self.extract_criteria_values(criteria)
+                )
+            
+            for instruction in treatment:
+                mod_values.append(
+                    self.extract_instruction_values(instruction)
+                )
+
+            mod_values = self.merge_dicts(mod_values)
+            installed_values = self.merge_dicts(installed_values)
+
+            print(mod_values)
+            print(installed_values)
+            print('--------------')
+
+            if mod_values == installed_values:
+                return True
+
+        return False
+
+
+    def extract_criteria_values(self, criteria):
+        criteria_type = criteria['type']
+
+        if criteria_type == 'IN_PORT':
+            return {criteria_type: criteria['port']}
+        elif criteria_type == 'ETH_DST':
+            return {criteria_type: criteria['mac']}
+        elif criteria_type == 'ETH_SRC':
+            return {criteria_type: criteria['mac']}
+        
+        return None
+    
+    
+    def extract_instruction_values(self, instruction):
+        instruction_type = instruction['type']
+
+        if instruction_type == 'OUTPUT':
+             return {instruction_type: instruction['port']}
+
+        return None
+
+
+    def merge_dicts(self, list_of_dicts):
+        '''
+        utility to prepare values for comparison
+        converts all values to string type to prevent type comparison errors
+        '''
+        merged = {}
+        for d in list_of_dicts:
+            for k, v in d.items():
+                merged[k] = str(v) 
+        return merged
