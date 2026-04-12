@@ -18,12 +18,12 @@ CONTROL_HOST = "127.0.0.1"
 CONTROL_PORT = 6653        # onos port
 #DROP_FLOW_MOD = False   # test blocking controller flow installs
 
-obs_msg_filter = [] # 14=flow mod
+obs_msg_filter = [14] # 14=flow mod, 20=barrier_request, 21=barrier reply
 observer = Observer(obs_msg_filter)
 
 controller_view = SDNControllerView('http://127.0.0.1:8181/onos/v1/flows', ONOS_API_USERNAME, ONOS_API_PASSWORD)
-print(controller_view.fetch_network_state())
-exit()
+controller_view.fetch_network_state()
+# exit()
 
 async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
     try:
@@ -36,14 +36,10 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
             msg = ofp.message.parse_message(hdr + body)
             type_name = of_type_map[msg.type]
 
-            print(f"[{type_name}] {direction}: len={length} xid={xid}")
+            #print(f"[{type_name}] {direction}: len={length} xid={xid}")
 
-            observer.add_message(msg, filter_enabled=False)
+            observer.add_message(msg)
             #observer.display_stats()
-
-            # if drop_ctl_flow_mod and typ == 14:
-            #     print("!!!!!!dropped FLOW_MOD")
-            #     continue
 
             writer.write(hdr + body)
             await writer.drain()
