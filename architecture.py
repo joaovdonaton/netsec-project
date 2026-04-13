@@ -28,11 +28,24 @@ class Observer:
         '''
         message: one of the loxigen message subclasses (e.g flow_mod)
         filter_enabled: debugging param
+
+        returns:
+        - True if successfully added message
+        - False if for some reason it failed
         '''
         if not filter_enabled or message.type in self.message_filter:
+            #
+            # TEMPORARY DEBUG THING, only flow_add to pass
+            #
+            if not (message._command == 0): # command 0 is add
+                return False
+
             norm_msg = self.normalize_message(message)
             if norm_msg is not None:
                 self.observed_log['of:0000000000000001'].append(norm_msg)
+                return True
+        
+        return False
         
         #print(self.observed_log)
 
@@ -206,9 +219,9 @@ class Comparator:
             mod_values = self.merge_dicts(mod_values)
             installed_values = self.merge_dicts(installed_values)
 
-            print(mod_values)
-            print(installed_values)
-            print('--------------')
+            # print(mod_values)
+            # print(installed_values)
+            # print('--------------')
 
             if mod_values == installed_values:
                 return True, flow_mod

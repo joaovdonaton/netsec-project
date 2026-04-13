@@ -44,10 +44,10 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
 
             #print(f"[{type_name}] {direction}: len={length} xid={xid}")
 
-            observer.add_message(msg)
+            observer_succeeded = observer.add_message(msg)
 
             # flow mod is stopped for our comparison
-            if msg.type == 14:
+            if (msg.type == 14) and observer_succeeded:
                 print('[!] network programming attempt detected! calling comparator.')
                 status, flow_obj = comparator.compare(controller_stub, observer)
 
