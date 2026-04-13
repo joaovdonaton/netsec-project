@@ -6,7 +6,7 @@ import threading
 import time
 import loxi.of13 as ofp 
 
-from architecture import Observer, SDNControllerView, Comparator
+from architecture import Observer, SDNControllerView, Comparator, MessageStore
 from util import of_type_map
 
 ONOS_API_USERNAME = 'onos'
@@ -16,17 +16,21 @@ PROXY_HOST = "0.0.0.0"
 PROXY_PORT = 16653      # mininet will connect to this
 CONTROL_HOST = "127.0.0.1"
 CONTROL_PORT = 6653        # onos port
-#DROP_FLOW_MOD = False   # test blocking controller flow installs
+
+MESSAGE_STORE_FILE_NAME = 'message_store.json'
 
 obs_msg_filter = [14] # 14=flow mod, 20=barrier_request, 21=barrier reply
 observer = Observer(obs_msg_filter)
 
+# create important objects for interceptor architecture
 controller_stub = SDNControllerView('http://127.0.0.1:8181/onos/v1/flows', ONOS_API_USERNAME, ONOS_API_PASSWORD)
-#controller_stub.fetch_network_state()
-# exit()
 
 comparator = Comparator()
 
+message_store = MessageStore(MESSAGE_STORE_FILE_NAME)
+
+
+# proxy stuff
 async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
     try:
         while True:
@@ -45,7 +49,7 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
             # flow mod is stopped for our comparison
             if msg.type == 14:
                 print('[!] network programming attempt detected! calling comparator.')
-                status = comparator.compare(controller_stub, observer)
+                status, flow_obj = comparator.compare(controller_stub, observer)
 
                 if status:
                     print('[!] Allow flow to be applied')
@@ -53,6 +57,7 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
                     await writer.drain()
                 else:
                     print('[!] BLOCKED MALICIOUS NETWORK MODIFICATION ATTEMPT')
+                    message_store.append_entry(flow_obj)
             
             # other messages can pass normally
             else:

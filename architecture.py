@@ -13,6 +13,7 @@ import requests
 from pprint import pprint
 import loxi.of13 as ofp 
 import loxi.of13.util as ofputil
+from datetime import datetime
 
 class Observer:
     def __init__(self, message_filter):
@@ -160,9 +161,12 @@ class Comparator:
         From the paper, it seems this is meant to be called every time there is a network programming
         attempt (so some kind of flow mod)
 
-        returns:
-        - True if the states match
-        - False if they don't
+        returns a tuple where:
+        - index 0 is
+            - True if the states match
+            - False if they don't
+        - index 1 is
+            - the flow object that was accepted/blocked
         '''
         # get newest state from ONOS 
         controller_stub.fetch_network_state() 
@@ -207,9 +211,9 @@ class Comparator:
             print('--------------')
 
             if mod_values == installed_values:
-                return True
+                return True, flow_mod
 
-        return False
+        return False, flow_mod
 
 
     def extract_criteria_values(self, criteria):
@@ -244,3 +248,36 @@ class Comparator:
             for k, v in d.items():
                 merged[k] = str(v) 
         return merged
+
+
+class MessageStore:
+    '''
+    Also from the paper's architecture, this is supposed to represent their "message store"
+    component. It's basically what handles storing the blocked malicious attacks for later
+    forensic investigation.
+
+    Much like the other things here, the details of what/how are ommited. So I will
+    just be storing them in a simple JSON file.
+    '''
+    def __init__(self, message_store_file_name):
+        self.file_name = message_store_file_name
+    
+
+    def append_entry(self, flow_msg):
+        '''
+        Appends details on a blocked message to a JSON file
+
+        expects the JSON to be a list
+        '''
+        with open(self.file_name, 'r') as f:
+            json_data = json.load(f)
+
+        json_data.append(
+            {
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'object': flow_msg
+            }
+        )
+
+        with open(self.file_name, 'w') as f:
+            json.dump(json_data, f)

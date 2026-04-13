@@ -2,3 +2,4 @@ venv
 loxigen-docs
 *.pyc
 .ipynb_checkpoints
+message_store.json
