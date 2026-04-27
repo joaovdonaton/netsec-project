@@ -8,6 +8,7 @@ import loxi.of13 as ofp
 
 from architecture import Observer, SDNControllerView, Comparator, MessageStore
 from util import of_type_map
+from attack import inject_malicious_flow
 
 ONOS_API_USERNAME = 'onos'
 ONOS_API_PASSWORD = 'rocks'
@@ -73,6 +74,9 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
 
 async def handle_switch(sw_reader, sw_writer):
     ctrl_reader, ctrl_writer = await asyncio.open_connection(CONTROL_HOST, CONTROL_PORT)
+
+    asyncio.create_task(inject_malicious_flow(sw_writer, observer, comparator, controller_stub, message_store))
+
     await asyncio.gather(
         relay(sw_reader, ctrl_writer, "To Controller"),
         relay(ctrl_reader, sw_writer, "To Network Device"),
