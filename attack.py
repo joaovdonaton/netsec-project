@@ -40,6 +40,8 @@ async def inject_malicious_flow(sw_writer, observer, comparator, controller_stub
     observer_succeeded = observer.add_message(msg)
 
     if msg.type == 14 and observer_succeeded:
+        start_time = time.perf_counter()
+
         print("[!] network programming attempt detected! calling comparator.")
         status, flow_obj = comparator.compare(controller_stub, observer)
 
@@ -50,3 +52,8 @@ async def inject_malicious_flow(sw_writer, observer, comparator, controller_stub
         else:
             print("[!] BLOCKED MALICIOUS NETWORK MODIFICATION ATTEMPT")
             message_store.append_entry(flow_obj)
+
+        end_time = time.perf_counter()
+        delay_ms = (end_time - start_time) * 1000
+
+        print(f'Took {delay_ms:.2f}ms')

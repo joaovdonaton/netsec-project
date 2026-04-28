@@ -20,6 +20,8 @@ CONTROL_PORT = 6653        # onos port
 
 MESSAGE_STORE_FILE_NAME = 'message_store.json'
 
+SAVE_DATA_LOCATION = './data/5k-flows.txt'
+
 obs_msg_filter = [14] # 14=flow mod, 20=barrier_request, 21=barrier reply
 observer = Observer(obs_msg_filter)
 
@@ -49,6 +51,8 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
 
             # flow mod is stopped for our comparison
             if (msg.type == 14) and observer_succeeded:
+                start_time = time.perf_counter()
+
                 print('[!] network programming attempt detected! calling comparator.')
                 status, flow_obj = comparator.compare(controller_stub, observer)
 
@@ -59,11 +63,22 @@ async def relay(reader, writer, direction, drop_ctl_flow_mod=False):
                 else:
                     print('[!] BLOCKED MALICIOUS NETWORK MODIFICATION ATTEMPT')
                     message_store.append_entry(flow_obj)
-            
+
+                end_time = time.perf_counter()
+                delay_ms = (end_time - start_time) * 1000
+
+                print(f'Took {delay_ms:.2f}ms')
+
+                with open(SAVE_DATA_LOCATION, 'a') as f:
+                    f.write(f'{delay_ms:.2f}\n')
+
+
             # other messages can pass normally
             else:
                 writer.write(hdr + body)
                 await writer.drain()
+
+            
     except Exception as e:
         print('Something wrong in relay!!!')
         print(e)

@@ -5,18 +5,19 @@ from collections import Counter
 import requests
 import time
 
-DEVICE = "of:0000000000000001"
-auth = ("onos", "rocks")
-url = f"http://127.0.0.1:8181/onos/v1/flows/{DEVICE}"
+# # DEBUG CODE
+# DEVICE = "of:0000000000000001"
+# auth = ("onos", "rocks")
+# url = f"http://127.0.0.1:8181/onos/v1/flows/{DEVICE}"
 
-time.sleep(2)
+# time.sleep(2)
 
-flows = requests.get(url, auth=auth).json()["flows"]
+# flows = requests.get(url, auth=auth).json()["flows"]
 
-print("total:", len(flows))
-print("by app:", Counter(flow["appId"] for flow in flows))
-print("rest:", sum(flow["appId"] == "org.onosproject.rest" for flow in flows))
-print("states:", Counter(flow["state"] for flow in flows))
+# print("total:", len(flows))
+# print("by app:", Counter(flow["appId"] for flow in flows))
+# print("rest:", sum(flow["appId"] == "org.onosproject.rest" for flow in flows))
+# print("states:", Counter(flow["state"] for flow in flows))
 
 
 ONOS_API_USERNAME = 'onos'
@@ -31,8 +32,8 @@ def install(COUNT):
 
         flow = {
             "priority": 40000,
-            "timeout": 30,
-            "isPermanent": False,
+            "timeout": 0,
+            "isPermanent": True,
             "deviceId": DEVICE,
             "selector": {
                 "criteria": [
@@ -79,7 +80,7 @@ if __name__ == '__main__':
     CLEAR_FLOWS = args.clear
 
     if INSTALL_FLOWS:
-        install(1000)
+        install(5000)
 
     if CHECK_FLOWS:
         check()
