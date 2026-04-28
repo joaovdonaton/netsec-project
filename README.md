@@ -32,6 +32,9 @@ sudo mn --controller=remote,ip=127.0.0.1,port=6653 --switch ovsk,protocols=OpenF
 ### Debugging and Utility stuff
 - Sometimes I have to run `sudo mn -c` to clean up mininet because there are still things running even after I exited the CLI
 
+- My utility function clear_flows (to remove all installed flows) will ONLY work if Mininet switch and the controller are connected 
+    - Make sure to have mininet running and connect it to either directly ONOS (6653) or via the proxy (16653) for it actually delete them
+
 ### Useful links, resources and more:
 - [Target Paper](https://dl.acm.org/doi/pdf/10.1145/3229616.3229620)
 - [OpenFlow spec for version in paper](https://opennetworking.org/wp-content/uploads/2014/10/openflow-switch-v1.3.4.pdf)

@@ -120,6 +120,8 @@ class SDNControllerView:
         self.network_view_state = {}
 
     def fetch_network_state(self):
+        self.network_view_state = {}
+
         resp = requests.get(self.controller_url, auth=(self.username, self.password))
 
         if resp.status_code == 200:

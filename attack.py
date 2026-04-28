@@ -1,7 +1,7 @@
 import asyncio
 import loxi.of13 as ofp 
 
-async def inject_malicious_flow(sw_writer, observer, comparator, controller_stub, message_store, delay=10):
+async def inject_malicious_flow(sw_writer, observer, comparator, controller_stub, message_store, delay=15):
     '''
     Function we used to simulate the attack scenario from the paper.
 
